@@ -61,7 +61,17 @@ function processDependenciesInContent(webpackLoader, content) {
 
     var modifiedHeader = state.pathsToRequire.map(function(pathToRequire) {
       if (isCSS) {
-        return "@import url(" + loaderUtils.stringifyRequest(webpackLoader, pathToRequire) + ");"
+        var importStr;
+
+        // Don't mess with relative or absolute paths. Otherwise prefix `~` to
+        // tell webpack to look up the paths as modules
+        if (/^(\.|\/)/.test(pathToRequire)) {
+          importStr = "@import url(" + pathToRequire + ");"
+        } else {
+          importStr = "@import url(~" + pathToRequire + ");"
+        }
+
+        return importStr;
       } else {
         return "require(" + loaderUtils.stringifyRequest(webpackLoader, pathToRequire) + ");"
       }
