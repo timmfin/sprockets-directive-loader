@@ -29,7 +29,7 @@ function extractHeader(content, customHeaderPattern) {
 }
 
 function processDependenciesInContent(webpackLoader, content) {
-  var isCSS = /\.css$/.test(webpackLoader.resourcePath);
+  var isCSS = /\.(css|scss|sass)$/i.test(webpackLoader.resourcePath);
   webpackLoader.cacheable(true);
 
   // Extract out all the directives from the header (directives can only appear
