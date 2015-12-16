@@ -1,6 +1,6 @@
 {
   "name": "sprockets-directive-loader",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "tfinley@hubspot.com",
   "description": "Converts Sprockets/Rails directives, in both JS and CSS files, into modules recognizable by Webpack.",
   "dependencies": {
