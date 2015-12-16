@@ -13,8 +13,22 @@ var DIRECTIVE_PATTERN = /^(\W*=)\s*(\w+)\s*(.*?)(\*\/)?$/gm;
 
 
 var DirectiveMethods = {
-  processRequireDirective: function(webpackLoader, state, arg1) {
-    state.pathsToRequire.push(arg1);
+  processRequireDirective: function(webpackLoader, meta, pathToRequire) {
+    if (meta.isCss) {
+      var importStr;
+
+      // Don't mess with relative or absolute paths. Otherwise prefix `~` to
+      // tell webpack to look up the paths as modules
+      if (/^(\.|\/)/.test(pathToRequire)) {
+        importStr = "@import url(" + pathToRequire + ");"
+      } else {
+        importStr = "@import url(~" + pathToRequire + ");"
+      }
+
+      return importStr;
+    } else {
+      return "require(" + loaderUtils.stringifyRequest(webpackLoader, pathToRequire) + ");"
+    }
   }
 }
 
@@ -29,8 +43,11 @@ function extractHeader(content, customHeaderPattern) {
 }
 
 function processDependenciesInContent(webpackLoader, content) {
-  var isCSS = /\.(css|scss|sass)$/i.test(webpackLoader.resourcePath);
   webpackLoader.cacheable(true);
+
+  var meta = {
+    isCss: /\.(css|scss|sass)$/i.test(webpackLoader.resourcePath)
+  };
 
   // Extract out all the directives from the header (directives can only appear
   // at the top of the file)
@@ -39,9 +56,7 @@ function processDependenciesInContent(webpackLoader, content) {
   // clone regex for safety
   var directivePattern = cloneRegexp(DIRECTIVE_PATTERN);
 
-  var state = {
-    pathsToRequire: []
-  };
+  var modifiedHeaderLines = [];
 
   while (match = directivePattern.exec(header)) {
     var preDirective  = match[1];
@@ -51,33 +66,22 @@ function processDependenciesInContent(webpackLoader, content) {
     var directiveFunc = "process" + pascalCase(directive) + "Directive";
 
     if (DirectiveMethods[directiveFunc]) {
-      DirectiveMethods[directiveFunc].apply(this, [webpackLoader, state].concat(directiveArgs));
+      var newModifiedHeaderLine = DirectiveMethods[directiveFunc].apply(this, [webpackLoader, meta].concat(directiveArgs));
+      if (newModifiedHeaderLine) {
+        modifiedHeaderLines.push(newModifiedHeaderLine);
+      }
     } else {
       console.warn("Potentially unknown directive `" + preDirective.trim() + " " + directive + "` ? (found in " + resourcePath + ")");
     }
   }
 
-  if (state.pathsToRequire.length > 0) {
-
-    var modifiedHeader = state.pathsToRequire.map(function(pathToRequire) {
-      if (isCSS) {
-        var importStr;
-
-        // Don't mess with relative or absolute paths. Otherwise prefix `~` to
-        // tell webpack to look up the paths as modules
-        if (/^(\.|\/)/.test(pathToRequire)) {
-          importStr = "@import url(" + pathToRequire + ");"
-        } else {
-          importStr = "@import url(~" + pathToRequire + ");"
-        }
-
-        return importStr;
-      } else {
-        return "require(" + loaderUtils.stringifyRequest(webpackLoader, pathToRequire) + ");"
-      }
-    }).join('\n');
-
-    content = '/* Start webpack directive-loader modifications */\n' + content.replace(header, modifiedHeader + '\n' + '/* End webpack directive-loader modifications */\n\n');
+  if (modifiedHeaderLines.length > 0) {
+    content = content.replace(
+      header,
+      '/* Start webpack directive-loader modifications */\n' +
+      modifiedHeaderLines.join('\n') + '\n' +
+      '/* End webpack directive-loader modifications */\n\n'
+    );
   }
 
   return content;
