@@ -48,13 +48,15 @@ function lookUpDirectoryIn(dirToLookup, rootPathsToCheck) {
 }
 
 
-function buildContextRequireString(resolvedDir, extensions, options) {
+function buildContextRequireString(resolvedDir, dirToRequire, extensions, options) {
   options = options || {};
+  var isRecursive = options.recursive === true;
 
   return [
+    '// All ' + (isRecursive ? 'recursive ' : '') + extensions.join(', ') + ' files in ' + dirToRequire,
     'var req = require.context(',
       JSON.stringify(resolvedDir) + ',',
-      (options.recursive === true) + ',',  // include subdirectories
+      isRecursive + ',',  // include subdirectories
       '/.*\.(' + extensions.join('|') + ')$/',
     '); req.keys().forEach(function(key){',
       'req(key);',
@@ -82,9 +84,9 @@ var DirectiveMethods = {
     }
   },
 
-  processRequireTreeDirective: function(webpackLoader, meta, dirToRequire) {
+  _processDirectoryHelper: function(directiveName, isRecursive, webpackLoader, meta, dirToRequire) {
     if (meta.isCss) {
-      throw new Error("Can't do require_tree for CSS yet");
+      throw new Error("Can't do " + directiveName + " for CSS yet");
     } else {
       var resolvedDir,
           locationsToLookIn = [ webpackLoader.options.context];
@@ -95,7 +97,7 @@ var DirectiveMethods = {
 
       // If the dirToRequire is a relative path
       if (/^\.?\/\//.test(dirToRequire)) {
-        throw new Error("You cannot (yet?) use relative paths in require_tree");
+        throw new Error("You cannot (yet?) use relative paths in " + directiveName);
         // CONSIDER, allow??? And ensure that the final resolved path is inside
         // locationsToLookIn ?
       } else {
@@ -107,41 +109,19 @@ var DirectiveMethods = {
 
       }
 
-      return buildContextRequireString(resolvedDir, ['js', 'coffee'], {
-        recursive: true
+      return buildContextRequireString(resolvedDir, dirToRequire, ['js', 'coffee'], {
+        recursive: isRecursive
       });
     }
+
+  },
+
+  processRequireTreeDirective: function(webpackLoader, meta, dirToRequire) {
+    return DirectiveMethods._processDirectoryHelper.call(this, 'require_tree', true, webpackLoader, meta, dirToRequire);
   },
 
   processRequireDirectoryDirective: function(webpackLoader, meta, dirToRequire) {
-    if (meta.isCss) {
-      throw new Error("Can't do require_directory for CSS yet");
-    } else {
-      var resolvedDir,
-          locationsToLookIn = [ webpackLoader.options.context];
-
-      if (webpackLoader.options.resolve && webpackLoader.options.resolve.root) {
-        Array.prototype.push.apply(locationsToLookIn, webpackLoader.options.resolve.root);
-      }
-
-      // If the dirToRequire is a relative path
-      if (/^\.?\/\//.test(dirToRequire)) {
-        throw new Error("You cannot (yet?) use relative paths in require_directory");
-        // CONSIDER, allow??? And ensure that the final resolved path is inside
-        // locationsToLookIn ?
-      } else {
-        resolvedDir = lookUpDirectoryIn(dirToRequire, locationsToLookIn);
-
-        if (!resolvedDir) {
-          throw new Error("Couldn't find " + dirToRequire + " in any of " + locationsToLookIn.join(', '))
-        }
-
-      }
-
-      return buildContextRequireString(resolvedDir, ['js', 'coffee'], {
-        recursive: false
-      });
-    }
+    return DirectiveMethods._processDirectoryHelper.call(this, 'require_directory', false, webpackLoader, meta, dirToRequire);
   }
 }
 
