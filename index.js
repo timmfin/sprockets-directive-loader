@@ -26,7 +26,9 @@ var CSS_EXTENSIONS = [
 ];
 
 var IS_CSS_REGEX = new RegExp('\.(' + CSS_EXTENSIONS.map(escapeRegexp).join('|') + ')$', 'i');
-var CSS_GLOB = "**/*.{" + CSS_EXTENSIONS.map(escapeRegexp).join(',') + "}"
+
+var CSS_GLOB = "*.{" + CSS_EXTENSIONS.map(escapeRegexp).join(',') + "}"
+var CSS_RECURSIVE_GLOB = "**/" + CSS_GLOB;
 
 function isFromCSSFile(webpackLoader) {
   return IS_CSS_REGEX.test(webpackLoader.resourcePath);
@@ -130,7 +132,7 @@ var DirectiveMethods = {
     }
 
     if (isFromCSSFile(webpackLoader)) {
-      var allCSSFiles = glob.sync(CSS_GLOB, {
+      var allCSSFiles = glob.sync(isRecursive ? CSS_RECURSIVE_GLOB : CSS_GLOB, {
         cwd: resolvedDir
       }).sort();
 
