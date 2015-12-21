@@ -5,8 +5,10 @@
   "description": "Converts Sprockets/Rails directives, in both JS and CSS files, into modules recognizable by Webpack.",
   "dependencies": {
     "clone-regexp": "^1.0.0",
-    "shellwords": "^0.1.0",
+    "escape-string-regexp": "^1.0.3",
+    "glob": "^6.0.1",
+    "loader-utils": "^0.2.11",
     "pascal-case": "^1.1.1",
-    "loader-utils": "^0.2.11"
+    "shellwords": "^0.1.0"
   }
 }
