@@ -45,7 +45,25 @@ function ensureDirDoesntStartWithASlash(dir) {
 }
 
 
-function lookUpDirectoryIn(dirToLookup, rootPathsToCheck) {
+function lookUpDirectoryIn(dirToLookup, rootPathsToCheck, absoluteSourcePath) {
+  dirToLookup = ensureDirDoesntStartWithASlash(dirToLookup);
+
+  // Convert relative path to root-based relative path
+  if (/^\.\.?\//.test(dirToLookup)) {
+    for (var i = 0; i < rootPathsToCheck.length; i++) {
+      if (absoluteSourcePath.startsWith(rootPathsToCheck[i])) {
+        var relativeSourcePath = absoluteSourcePath.replace(rootPathsToCheck[i], '');
+        dirToLookup = path.join(path.dirname(relativeSourcePath), dirToLookup)
+
+        if (dirToLookup.startsWith('..')) {
+          throw new Error('Relative path ' + dirToLookup + ' is not allowed to access relative paths outside the original project');
+        }
+
+        break;
+      }
+    }
+  }
+
   dirToLookup = ensureDirDoesntStartWithASlash(dirToLookup);
 
   for (var i = 0; i < rootPathsToCheck.length; i++) {
@@ -118,17 +136,15 @@ var DirectiveMethods = {
     }
 
     // If the dirToRequire is a relative path
-    if (/^\.?\/\//.test(dirToRequire)) {
-      throw new Error("You cannot (yet?) use relative paths in " + directiveName);
+    if (/^\.\.?\//.test(dirToRequire)) {
+      dirToRequire
       // CONSIDER, allow??? And ensure that the final resolved path is inside
       // locationsToLookIn ?
-    } else {
-      resolvedDir = lookUpDirectoryIn(dirToRequire, locationsToLookIn);
+    }
+    resolvedDir = lookUpDirectoryIn(dirToRequire, locationsToLookIn, webpackLoader.resourcePath);
 
-      if (!resolvedDir) {
-        throw new Error("Couldn't find " + dirToRequire + " in any of " + locationsToLookIn.join(', '))
-      }
-
+    if (!resolvedDir) {
+      throw new Error("Couldn't find " + dirToRequire + " in any of " + locationsToLookIn.join(', '))
     }
 
     if (isFromCSSFile(webpackLoader)) {
@@ -192,7 +208,7 @@ function processDependenciesInContent(webpackLoader, content) {
         modifiedHeaderLines.push(newModifiedHeaderLine);
       }
     } else {
-      console.warn("Potentially unknown directive `" + preDirective.trim() + " " + directive + "` ? (found in " + resourcePath + ")");
+      console.warn("Potentially unknown directive `" + preDirective.trim() + " " + directive + "` ? (found in " + webpackLoader.resourcePath + ")");
     }
   }
 
