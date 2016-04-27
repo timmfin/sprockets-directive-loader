@@ -99,7 +99,7 @@ function lookUpDirectoryIn(dirToLookup, rootPathsToCheck, absoluteSourcePath) {
 }
 
 
-function buildContextRequireString(resolvedDir, dirToRequire, extensions, options) {
+function buildJSContextRequireString(resolvedDir, dirToRequire, extensions, options) {
   options = options || {};
   var isRecursive = options.recursive === true;
 
@@ -109,7 +109,8 @@ function buildContextRequireString(resolvedDir, dirToRequire, extensions, option
       JSON.stringify(resolvedDir) + ',',
       isRecursive + ',',  // include subdirectories
       '/.*\.(' + extensions.join('|') + ')$/',
-    '); req.keys().forEach(function(key){',
+    ');\n' +
+    'req.keys().forEach(function(key){',
       'req(key);',
     '});'
   ].join('\n');
@@ -175,10 +176,14 @@ var DirectiveMethods = {
       })
 
       return allCSSFiles.map(cssRequireString).join('\n');
+    } else if (isFromCoffeeFile(webpackLoader)) {
+      return '`' + buildJSContextRequireString(resolvedDir, dirToRequire, JS_EXTENSIONS, {
+        recursive: isRecursive
+      }) + '`';
     } else {
       // TODO, since we need to glob for CSS, should we just do that here too?
       // (instead of the fancy WebPack require string?)
-      return buildContextRequireString(resolvedDir, dirToRequire, JS_EXTENSIONS, {
+      return buildJSContextRequireString(resolvedDir, dirToRequire, JS_EXTENSIONS, {
         recursive: isRecursive
       });
     }
