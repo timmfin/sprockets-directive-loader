@@ -16,7 +16,8 @@ var DIRECTIVE_PATTERN = utils.DIRECTIVE_PATTERN;
 // Likely should make this configurable?
 var JS_EXTENSIONS = [
   'js',
-  'coffee'
+  'coffee',
+  'jade'
 ];
 
 var CSS_EXTENSIONS = [
