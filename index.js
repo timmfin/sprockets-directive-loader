@@ -35,6 +35,17 @@ function isFromCSSFile(webpackLoader) {
   return IS_CSS_REGEX.test(webpackLoader.resourcePath);
 }
 
+function isFromCoffeeFile(webpackLoader) {
+  return path.extname(webpackLoader.resourcePath) == '.coffee';
+}
+
+function blockCommentFor(message, webpackLoader) {
+  if (isFromCoffeeFile(webpackLoader)) {
+    return '### ' + message + ' ###';
+  } else {
+    return '/* ' + message + ' */';
+  }
+}
 
 function ensureDirDoesntStartWithASlash(dir) {
   // Remove front slash
@@ -216,9 +227,9 @@ function processDependenciesInContent(webpackLoader, content) {
   if (modifiedHeaderLines.length > 0) {
     content = content.replace(
       header,
-      '/* Start webpack directive-loader modifications */\n' +
+      blockCommentFor('Start webpack directive-loader modifications', webpackLoader) + '\n' +
       modifiedHeaderLines.join('\n') + '\n' +
-      '/* End webpack directive-loader modifications */\n\n'
+      blockCommentFor('End webpack directive-loader modifications', webpackLoader) + '\n\n'
     );
   }
 
