@@ -21,7 +21,7 @@ _Note it may be possible to fix some or all of the above, but this is only versi
   // ...
 
   module: {
-    // Needs to be a pre-loader so that it is run before files are convered to JS
+    // Needs to be a pre-loader so that it is run before files are converted to JS
     preLoaders: [
       {
         test: /\.js$/,
